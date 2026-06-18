@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # 依赖下载服务
+  deps:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+      - target-cache:/app/src-tauri/target
+    working_dir: /app
+    command: >
+      bash -c "
+        echo '=== Downloading npm dependencies ===' &&
+        npm install &&
+        echo '=== Downloading cargo dependencies ===' &&
+        cd src-tauri && cargo fetch &&
+        echo '=== Dependencies downloaded successfully ==='
+      "
+    environment:
+      - http_proxy=http://host.docker.internal:7897
+      - https_proxy=http://host.docker.internal:7897
+
+  # 编译检查服务
+  check:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+      - target-cache:/app/src-tauri/target
+    working_dir: /app/src-tauri
+    command: cargo check
+    environment:
+      - http_proxy=http://host.docker.internal:7897
+      - https_proxy=http://host.docker.internal:7897
+
+  # 交互式开发环境
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+      - target-cache:/app/src-tauri/target
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    environment:
+      - http_proxy=http://host.docker.internal:7897
+      - https_proxy=http://host.docker.internal:7897
+    command: bash
+
+volumes:
+  cargo-cache:
+  cargo-git:
+  target-cache:

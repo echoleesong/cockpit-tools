@@ -1,0 +1,47 @@
+# Cockpit Tools 开发环境 Docker 镜像
+# 用于下载依赖和编译，不运行 GUI
+
+FROM rust:1.96-bookworm
+
+# 设置代理
+ENV http_proxy=http://host.docker.internal:7897
+ENV https_proxy=http://host.docker.internal:7897
+ENV no_proxy=localhost,127.0.0.1
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    libwebkit2gtk-4.1-dev \
+    build-essential \
+    curl \
+    wget \
+    file \
+    libxdo-dev \
+    libssl-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+
+# 配置 Cargo 使用代理
+RUN mkdir -p /root/.cargo && \
+    echo '[net]' > /root/.cargo/config.toml && \
+    echo 'git-fetch-with-cli = true' >> /root/.cargo/config.toml && \
+    echo '' >> /root/.cargo/config.toml && \
+    echo '[http]' >> /root/.cargo/config.toml && \
+    echo 'proxy = "http://host.docker.internal:7897"' >> /root/.cargo/config.toml && \
+    echo '' >> /root/.cargo/config.toml && \
+    echo '[https]' >> /root/.cargo/config.toml && \
+    echo 'proxy = "http://host.docker.internal:7897"' >> /root/.cargo/config.toml
+
+# 安装 Tauri CLI
+RUN cargo install tauri-cli --version "^2"
+
+# 设置工作目录
+WORKDIR /app
+
+# 默认命令
+CMD ["bash"]
